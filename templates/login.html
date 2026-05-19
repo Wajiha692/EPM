@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sign In — ProjectHub</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-icon"><i class="bi bi-kanban-fill"></i></div>
+    <h4 class="text-center fw-bold mb-1">ProjectHub</h4>
+    <p class="text-center text-muted mb-4" style="font-size:.83rem">Multi-Project Management Platform</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for cat,msg in messages %}
+        <div class="alert alert-{{cat}} py-2 mb-3" style="font-size:.85rem;border-radius:9px">{{msg}}</div>
+      {% endfor %}{% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+          <input type="text" name="username" class="form-control border-start-0 ps-0" placeholder="your username" required autofocus>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label">Password</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+          <input type="password" name="password" class="form-control border-start-0 ps-0" placeholder="••••••••" required>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-accent w-100 fw-semibold py-2">
+        <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+      </button>
+    </form>
+
+    <div class="mt-4 p-3 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0">
+      <p class="mb-2" style="font-size:.69rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8">Demo Accounts</p>
+      <div class="d-flex flex-column gap-1" style="font-size:.79rem">
+        <div class="d-flex justify-content-between"><span><span class="badge-r r-admin me-1">admin</span><code>admin</code></span><code class="text-muted">admin123</code></div>
+        <div class="d-flex justify-content-between"><span><span class="badge-r r-manager me-1">manager</span><code>manager</code></span><code class="text-muted">manager123</code></div>
+        <div class="d-flex justify-content-between"><span><span class="badge-r r-employee me-1">employee</span><code>employee1</code></span><code class="text-muted">emp123</code></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

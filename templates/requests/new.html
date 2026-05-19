@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% set ep = request.endpoint or '' %}
+{% block title %}Request Project — ProjectHub{% endblock %}
+{% block page_title %}Request a Project{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('projects.list_projects') }}" class="text-muted text-decoration-none" style="font-size:.875rem">
+    <i class="bi bi-arrow-left me-1"></i>Back to Projects
+  </a>
+</div>
+<div class="card form-card">
+  <div class="card-body">
+    <h5 class="fw-bold mb-1">Submit a Project Request</h5>
+    <p class="text-muted mb-4" style="font-size:.875rem">Fill out the details below. A manager will review and approve or reject your request.</p>
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">Project Title <span class="text-danger">*</span></label>
+        <input type="text" name="title" class="form-control" placeholder="e.g. Customer Portal Dashboard" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-control" rows="4" placeholder="Describe the project goals, scope, expected outcomes…"></textarea>
+      </div>
+      <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+          <label class="form-label">Priority</label>
+          <select name="priority" class="form-select">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div class="col-sm-4">
+          <label class="form-label">Desired Deadline</label>
+          <input type="date" name="deadline" class="form-control">
+        </div>
+        <div class="col-sm-4">
+          <label class="form-label">Est. Hours</label>
+          <input type="number" name="estimated_hours" class="form-control" placeholder="e.g. 80" min="1">
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-accent px-4 fw-semibold">
+          <i class="bi bi-send me-1"></i>Submit Request
+        </button>
+        <a href="{{ url_for('projects.list_projects') }}" class="btn btn-light px-4">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

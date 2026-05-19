@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% set project = p %}
+{% set ep = request.endpoint or '' %}
+{% block title %}{{ t.title }} — {{ p.name }}{% endblock %}
+{% block page_title %}Task Detail{% endblock %}
+
+{% block topbar_actions %}
+{% if current_user.is_manager() %}
+<form method="POST" action="{{ url_for('tasks.delete_task', project_id=p.id, task_id=t.id) }}"
+      onsubmit="return confirm('Delete this task?')">
+  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Delete</button>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="mb-3 d-flex gap-1 align-items-center" style="font-size:.82rem;color:var(--muted)">
+  <a href="{{ url_for('projects.workspace', project_id=p.id) }}" class="text-muted text-decoration-none">{{ p.name }}</a>
+  <i class="bi bi-chevron-right"></i>
+  <a href="{{ url_for('tasks.board', project_id=p.id) }}" class="text-muted text-decoration-none">Board</a>
+  <i class="bi bi-chevron-right"></i><span>{{ t.title[:30] }}…</span>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <!-- Task body -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
+          <h5 class="fw-bold mb-0">{{ t.title }}</h5>
+          <span class="text-muted" style="font-size:.75rem">#{{ t.id }}</span>
+        </div>
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <span class="badge-s s-{{ t.status }}">{{ t.status.replace('_',' ') }}</span>
+          <span class="badge-p p-badge-{{ t.priority }}">{{ t.priority }}</span>
+          {% if t.is_overdue %}<span class="overdue-badge">Overdue</span>{% endif %}
+        </div>
+        <p style="font-size:.9rem;line-height:1.7;color:#334155">{{ t.description or '<em class="text-muted">No description.</em>'|safe }}</p>
+      </div>
+    </div>
+
+    <!-- Update status -->
+    <div class="card mb-4">
+      <div class="card-header"><span><i class="bi bi-arrow-repeat me-2 text-muted"></i>Update Status</span></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('tasks.update_status', project_id=p.id, task_id=t.id) }}" class="d-flex gap-2 flex-wrap">
+          <select name="status" class="form-select" style="width:auto">
+            <option value="todo" {% if t.status=='todo' %}selected{% endif %}>To Do</option>
+            <option value="in_progress" {% if t.status=='in_progress' %}selected{% endif %}>In Progress</option>
+            <option value="done" {% if t.status=='done' %}selected{% endif %}>Done</option>
+          </select>
+          <button class="btn btn-accent fw-semibold"><i class="bi bi-check2 me-1"></i>Save</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Comments -->
+    <div class="card">
+      <div class="card-header"><span><i class="bi bi-chat-left-text me-2 text-muted"></i>Comments ({{ comments|length }})</span></div>
+      <div class="card-body p-0">
+        {% if comments %}
+        <div class="p-3 d-flex flex-column gap-3">
+        {% for c in comments %}
+          <div class="d-flex gap-3">
+            <div class="avatar av-sm flex-shrink-0 mt-1">{{ c.author.avatar_initials }}</div>
+            <div class="flex-1">
+              <div class="d-flex gap-2 align-items-center mb-1">
+                <span class="fw-semibold" style="font-size:.875rem">{{ c.author.full_name }}</span>
+                <span class="text-muted" style="font-size:.72rem">{{ c.created_at.strftime('%b %d, %H:%M') }}</span>
+              </div>
+              <div class="p-2 px-3 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0;font-size:.875rem;line-height:1.6">{{ c.body }}</div>
+            </div>
+          </div>
+        {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state py-3" style="font-size:.85rem"><i class="bi bi-chat-left" style="font-size:1.5rem"></i>No comments yet.</div>
+        {% endif %}
+        <div class="p-3 border-top">
+          <form method="POST" action="{{ url_for('tasks.add_comment', project_id=p.id, task_id=t.id) }}">
+            <div class="d-flex gap-2">
+              <div class="avatar av-sm flex-shrink-0 mt-1">{{ current_user.avatar_initials }}</div>
+              <div class="flex-1">
+                <textarea name="body" class="form-control mb-2" rows="2" placeholder="Add a comment…" required></textarea>
+                <button class="btn btn-sm btn-accent"><i class="bi bi-send me-1"></i>Comment</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><span><i class="bi bi-info-circle me-2 text-muted"></i>Details</span></div>
+      <div class="card-body" style="font-size:.875rem">
+        <dl class="row g-2 mb-0">
+          <dt class="col-5 text-muted fw-normal">Assigned To</dt>
+          <dd class="col-7 mb-0">
+            <div class="d-flex align-items-center gap-2">
+              <div class="avatar av-sm">{{ t.assignee.avatar_initials }}</div>{{ t.assignee.full_name }}
+            </div>
+          </dd>
+          <dt class="col-5 text-muted fw-normal">Created By</dt>
+          <dd class="col-7 mb-0">{{ t.creator.full_name }}</dd>
+          <dt class="col-5 text-muted fw-normal">Priority</dt>
+          <dd class="col-7 mb-0"><span class="badge-p p-badge-{{ t.priority }}">{{ t.priority }}</span></dd>
+          <dt class="col-5 text-muted fw-normal">Status</dt>
+          <dd class="col-7 mb-0"><span class="badge-s s-{{ t.status }}">{{ t.status.replace('_',' ') }}</span></dd>
+          {% if t.deadline %}
+          <dt class="col-5 text-muted fw-normal">Deadline</dt>
+          <dd class="col-7 mb-0 fw-semibold {% if t.is_overdue %}text-danger{% endif %}">{{ t.deadline }}</dd>
+          {% endif %}
+          <dt class="col-5 text-muted fw-normal">Created</dt>
+          <dd class="col-7 text-muted mb-0">{{ t.created_at.strftime('%b %d, %Y') }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

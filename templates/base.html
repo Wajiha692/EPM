@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}ProjectHub{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<div class="sb-overlay" id="sbOverlay" onclick="closeSb()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <a class="sb-brand" href="{{ url_for('projects.list_projects') }}">
+    <div class="sb-brand-icon"><i class="bi bi-kanban-fill text-white"></i></div>
+    ProjectHub
+  </a>
+
+  {% if project is defined and project %}
+  <div class="sb-project-ctx">
+    <div class="sb-project-label">Current Project</div>
+    <div class="sb-project-name">{{ project.name }}</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Project</div>
+    <a href="{{ url_for('projects.workspace', project_id=project.id) }}"
+       class="sb-link {% if ep == 'projects.workspace' %}active{% endif %}">
+      <i class="bi bi-grid-1x2"></i> Dashboard
+    </a>
+    <a href="{{ url_for('tasks.board', project_id=project.id) }}"
+       class="sb-link {% if ep in ['tasks.board','tasks.task_detail','tasks.new_task'] %}active{% endif %}">
+      <i class="bi bi-kanban"></i> Task Board
+    </a>
+    <a href="{{ url_for('chat.index', project_id=project.id) }}"
+       class="sb-link {% if ep == 'chat.index' %}active{% endif %}">
+      <i class="bi bi-chat-dots"></i> Team Chat
+    </a>
+    <a href="{{ url_for('reports.index', project_id=project.id) }}"
+       class="sb-link {% if ep == 'reports.index' %}active{% endif %}">
+      <i class="bi bi-bar-chart-line"></i> Reports
+    </a>
+    <div class="sb-label mt-1">Navigation</div>
+    <a href="{{ url_for('projects.list_projects') }}" class="sb-link">
+      <i class="bi bi-arrow-left"></i> All Projects
+    </a>
+  </div>
+  {% else %}
+  {% set ep = request.endpoint or '' %}
+  <div class="sb-section">
+    <div class="sb-label">Main</div>
+    <a href="{{ url_for('projects.list_projects') }}"
+       class="sb-link {% if ep == 'projects.list_projects' %}active{% endif %}">
+      <i class="bi bi-grid-1x2"></i> My Projects
+    </a>
+    <a href="{{ url_for('requests.new_request') }}"
+       class="sb-link {% if ep == 'requests.new_request' %}active{% endif %}">
+      <i class="bi bi-plus-circle"></i> Request Project
+    </a>
+  </div>
+  {% if current_user.is_manager() %}
+  <div class="sb-section">
+    <div class="sb-label">Manage</div>
+    <a href="{{ url_for('projects.new_project') }}"
+       class="sb-link {% if ep == 'projects.new_project' %}active{% endif %}">
+      <i class="bi bi-folder-plus"></i> New Project
+    </a>
+  </div>
+  {% endif %}
+  {% if current_user.is_admin() %}
+  <div class="sb-section">
+    <div class="sb-label">Admin</div>
+    <a href="{{ url_for('admin.index') }}"
+       class="sb-link {% if 'admin.' in ep %}active{% endif %}">
+      <i class="bi bi-shield-check"></i> Admin Panel
+    </a>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <div class="sb-footer">
+    <div class="avatar av-md">{{ current_user.avatar_initials }}</div>
+    <div style="min-width:0;flex:1">
+      <div class="sb-user-name">{{ current_user.full_name }}</div>
+      <div class="sb-user-role">{{ current_user.role }}</div>
+    </div>
+    <a href="{{ url_for('auth.logout') }}" class="text-white opacity-40 ms-1" title="Logout">
+      <i class="bi bi-box-arrow-right"></i>
+    </a>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="d-flex align-items-center gap-3">
+      <button class="btn btn-sm btn-light sb-toggle" onclick="toggleSb()"><i class="bi bi-list fs-5"></i></button>
+      <span class="topbar-title">{% block page_title %}{% endblock %}</span>
+    </div>
+    <div class="page-actions">{% block topbar_actions %}{% endblock %}</div>
+  </header>
+
+  <div class="page-body">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for cat,msg in messages %}
+        <div class="alert alert-{{cat}} alert-dismissible fade show mb-3" style="border-radius:10px" role="alert">
+          {{msg}}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}{% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+<script>
+function toggleSb(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sbOverlay').classList.toggle('show')}
+function closeSb(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sbOverlay').classList.remove('show')}
+</script>
+</body>
+</html>

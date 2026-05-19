@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% set ep = request.endpoint or '' %}
+{% block title %}My Projects — ProjectHub{% endblock %}
+{% block page_title %}My Projects{% endblock %}
+
+{% block topbar_actions %}
+{% if current_user.is_manager() %}
+<a href="{{ url_for('projects.new_project') }}" class="btn btn-sm btn-accent">
+  <i class="bi bi-folder-plus me-1"></i>New Project
+</a>
+{% endif %}
+<a href="{{ url_for('requests.new_request') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-plus-circle me-1"></i>Request Project
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <!-- Left column: projects + filters -->
+  <div class="col-lg-8">
+
+    <!-- Notifications for employees -->
+    {% for req in my_notifications %}
+    <div class="alert alert-{% if req.status == 'approved' %}success{% else %}warning{% endif %} alert-dismissible fade show mb-3" style="border-radius:10px">
+      {% if req.status == 'approved' %}
+        <i class="bi bi-check-circle me-2"></i>
+        Your request <strong>{{ req.title }}</strong> was approved!
+        <a href="{{ url_for('projects.workspace', project_id=req.project_id) }}" class="alert-link ms-1">Open project →</a>
+      {% else %}
+        <i class="bi bi-x-circle me-2"></i>
+        Your request <strong>{{ req.title }}</strong> was rejected.
+        {% if req.rejection_reason %}<span class="text-muted ms-1">({{ req.rejection_reason }})</span>{% endif %}
+      {% endif %}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+
+    <!-- Filters -->
+    <form method="GET" class="d-flex gap-2 mb-4 flex-wrap align-items-center">
+      <div class="input-group" style="max-width:260px">
+        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" value="{{ q }}" class="form-control border-start-0 ps-0" placeholder="Search projects…">
+      </div>
+      <select name="status" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+        <option value="all" {% if status_f=='all' %}selected{% endif %}>All Statuses</option>
+        <option value="active" {% if status_f=='active' %}selected{% endif %}>Active</option>
+        <option value="completed" {% if status_f=='completed' %}selected{% endif %}>Completed</option>
+        <option value="on_hold" {% if status_f=='on_hold' %}selected{% endif %}>On Hold</option>
+      </select>
+      <button type="submit" class="btn btn-sm btn-light">Search</button>
+    </form>
+
+    <!-- Project cards grid -->
+    {% if projects %}
+    <div class="row g-3">
+    {% for p in projects %}
+      <div class="col-md-6">
+        <a href="{{ url_for('projects.workspace', project_id=p.id) }}" class="project-card">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <div class="project-card-name">{{ p.name }}</div>
+            <span class="badge-s s-{{ p.status.replace(' ','_') }} ms-2" style="white-space:nowrap">{{ p.status }}</span>
+          </div>
+          <div class="project-card-desc">{{ p.description or 'No description.' }}</div>
+          <div class="progress"><div class="progress-bar" style="width:{{ p.progress }}%;background:{% if p.progress == 100 %}#22c55e{% elif p.progress > 50 %}#3b82f6{% else %}#818cf8{% endif %}"></div></div>
+          <div class="d-flex justify-content-between align-items-center" style="font-size:.75rem;color:var(--muted)">
+            <span>{{ p.progress }}% complete</span>
+            <span>
+              <i class="bi bi-people me-1"></i>{{ p.member_count }}
+              {% if p.overdue_count > 0 %}
+              <span class="overdue-badge ms-2"><i class="bi bi-exclamation-triangle me-1"></i>{{ p.overdue_count }} overdue</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="d-flex justify-content-between mt-2" style="font-size:.72rem;color:var(--muted)">
+            <span><span class="badge-p p-badge-{{ p.priority }}">{{ p.priority }}</span></span>
+            <span>{% if p.deadline %}Due {{ p.deadline }}{% endif %}</span>
+          </div>
+        </a>
+      </div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="empty-state">
+        <i class="bi bi-folder-x"></i>
+        No projects found.
+        {% if current_user.is_manager() %}
+        <div class="mt-3">
+          <a href="{{ url_for('projects.new_project') }}" class="btn btn-accent btn-sm">Create a Project</a>
+        </div>
+        {% else %}
+        <div class="mt-3">
+          <a href="{{ url_for('requests.new_request') }}" class="btn btn-accent btn-sm">Request a Project</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right sidebar -->
+  <div class="col-lg-4">
+
+    <!-- Pending requests (manager/admin) -->
+    {% if current_user.is_manager() and pending_requests %}
+    <div class="card mb-4">
+      <div class="card-header">
+        <span><i class="bi bi-inbox me-2 text-warning"></i>Pending Requests</span>
+        <span class="badge bg-warning text-dark">{{ pending_requests|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% for req in pending_requests %}
+        <div class="p-3 {% if not loop.last %}border-bottom{% endif %}">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <span class="fw-semibold" style="font-size:.875rem">{{ req.title }}</span>
+            <span class="badge-p p-badge-{{ req.priority }}">{{ req.priority }}</span>
+          </div>
+          <div class="text-muted mb-2" style="font-size:.78rem">by {{ req.requester.full_name }} · {{ req.created_at.strftime('%b %d') }}</div>
+          <a href="{{ url_for('requests.detail', req_id=req.id) }}" class="btn btn-sm btn-accent w-100">Review Request</a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick stats -->
+    <div class="card mb-4">
+      <div class="card-header"><span><i class="bi bi-activity me-2 text-muted"></i>Overview</span></div>
+      <div class="card-body">
+        <div class="row g-2 text-center">
+          <div class="col-6">
+            <div class="p-3 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0">
+              <div class="fw-bold fs-4" style="color:#4f46e5">{{ projects|length }}</div>
+              <div class="text-muted" style="font-size:.75rem">Projects</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-3 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0">
+              <div class="fw-bold fs-4" style="color:#16a34a">{{ projects|selectattr('status','equalto','active')|list|length }}</div>
+              <div class="text-muted" style="font-size:.75rem">Active</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Request project card -->
+    {% if current_user.role == 'employee' %}
+    <div class="card" style="border:2px dashed #c7d2fe">
+      <div class="card-body text-center py-4">
+        <i class="bi bi-plus-circle" style="font-size:2rem;color:#818cf8;display:block;margin-bottom:.75rem"></i>
+        <div class="fw-semibold mb-1">Need a new project?</div>
+        <div class="text-muted mb-3" style="font-size:.8rem">Submit a request and your manager will review it.</div>
+        <a href="{{ url_for('requests.new_request') }}" class="btn btn-accent btn-sm px-4">Request Project</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

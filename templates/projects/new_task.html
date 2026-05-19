@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% set project = p %}
+{% set ep = request.endpoint or '' %}
+{% block title %}New Task — {{ p.name }}{% endblock %}
+{% block page_title %}New Task{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('tasks.board', project_id=p.id) }}" class="text-muted text-decoration-none" style="font-size:.875rem">
+    <i class="bi bi-arrow-left me-1"></i>Back to Board
+  </a>
+</div>
+<div class="card form-card">
+  <div class="card-body">
+    <h5 class="fw-bold mb-1">Create Task</h5>
+    <p class="text-muted mb-4" style="font-size:.875rem">Add a task to <strong>{{ p.name }}</strong> and assign it to a team member.</p>
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">Task Title <span class="text-danger">*</span></label>
+        <input type="text" name="title" class="form-control" placeholder="e.g. Build login page" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-control" rows="3" placeholder="Task details, requirements…"></textarea>
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label">Assign To <span class="text-danger">*</span></label>
+          <select name="assigned_to" class="form-select" required>
+            <option value="">— Select member —</option>
+            {% for m in members %}
+            <option value="{{ m.id }}">{{ m.full_name }} ({{ m.role }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-sm-3">
+          <label class="form-label">Priority</label>
+          <select name="priority" class="form-select">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div class="col-sm-3">
+          <label class="form-label">Deadline</label>
+          <input type="date" name="deadline" class="form-control">
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-accent px-4 fw-semibold">
+          <i class="bi bi-plus-circle me-1"></i>Create Task
+        </button>
+        <a href="{{ url_for('tasks.board', project_id=p.id) }}" class="btn btn-light px-4">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

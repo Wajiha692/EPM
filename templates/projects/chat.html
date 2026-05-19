@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% set project = p %}
+{% set ep = request.endpoint or '' %}
+{% block title %}Chat — {{ p.name }}{% endblock %}
+{% block page_title %}Team Chat{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-1 mb-3 align-items-center" style="font-size:.82rem;color:var(--muted)">
+  <a href="{{ url_for('projects.workspace', project_id=p.id) }}" class="text-muted text-decoration-none">{{ p.name }}</a>
+  <i class="bi bi-chevron-right"></i><span>Team Chat</span>
+</div>
+
+<div class="card chat-wrap p-0">
+  <div class="card-header">
+    <span><i class="bi bi-chat-dots me-2 text-muted"></i>{{ p.name }} — Chat</span>
+    <span style="font-size:.75rem;color:var(--muted)">
+      <i class="bi bi-circle-fill text-success me-1" style="font-size:.45rem"></i>Live
+    </span>
+  </div>
+
+  <div class="chat-messages" id="chatMessages">
+    {% for m in messages %}
+    <div class="chat-msg {% if m.user_id == current_user.id %}mine{% endif %}" data-id="{{ m.id }}">
+      {% if m.user_id != current_user.id %}
+      <div class="avatar av-sm flex-shrink-0">{{ m.sender.avatar_initials }}</div>
+      {% endif %}
+      <div>
+        {% if m.user_id != current_user.id %}
+        <div class="chat-meta mb-1"><span class="fw-semibold" style="color:var(--text)">{{ m.sender.full_name }}</span> · {{ m.created_at.strftime('%H:%M') }}</div>
+        {% endif %}
+        <div class="chat-bubble">{{ m.body }}</div>
+        {% if m.user_id == current_user.id %}
+        <div class="chat-meta">{{ m.created_at.strftime('%H:%M') }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    {% if not messages %}
+    <div class="text-center text-muted py-5" id="emptyMsg">
+      <i class="bi bi-chat-square-dots d-block fs-2 mb-2 opacity-25"></i>
+      No messages yet. Start the conversation!
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="chat-input-row">
+    <form id="chatForm" class="d-flex gap-2">
+      <div class="avatar av-sm flex-shrink-0 mt-1">{{ current_user.avatar_initials }}</div>
+      <input type="text" id="msgInput" class="form-control" placeholder="Write a message…" autocomplete="off" maxlength="1000" required>
+      <button type="submit" class="btn btn-accent px-3"><i class="bi bi-send"></i></button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const chatEl = document.getElementById('chatMessages');
+let lastId = {{ messages[-1].id if messages else 0 }};
+
+function scrollBottom(){ chatEl.scrollTop = chatEl.scrollHeight; }
+scrollBottom();
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function buildMsg(m) {
+  const wrap = document.createElement('div');
+  wrap.className = 'chat-msg' + (m.mine ? ' mine' : '');
+  wrap.dataset.id = m.id;
+  wrap.innerHTML = `
+    ${!m.mine ? `<div class="avatar av-sm flex-shrink-0">${esc(m.initials)}</div>` : ''}
+    <div>
+      ${!m.mine ? `<div class="chat-meta mb-1"><span class="fw-semibold" style="color:var(--text)">${esc(m.full_name)}</span> · ${m.time}</div>` : ''}
+      <div class="chat-bubble">${esc(m.body)}</div>
+      ${m.mine ? `<div class="chat-meta">${m.time}</div>` : ''}
+    </div>`;
+  return wrap;
+}
+
+async function fetchNew() {
+  try {
+    const r = await fetch(`/projects/{{ p.id }}/chat/messages?since=${lastId}`);
+    const msgs = await r.json();
+    if (msgs.length) {
+      const e = document.getElementById('emptyMsg');
+      if (e) e.remove();
+      const atBottom = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 80;
+      msgs.forEach(m => {
+        if (!document.querySelector(`[data-id="${m.id}"]`)) {
+          chatEl.appendChild(buildMsg(m));
+          lastId = Math.max(lastId, m.id);
+        }
+      });
+      if (atBottom) scrollBottom();
+    }
+  } catch(e) {}
+}
+setInterval(fetchNew, 5000);
+
+document.getElementById('chatForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const inp = document.getElementById('msgInput');
+  const body = inp.value.trim();
+  if (!body) return;
+  inp.value = ''; inp.disabled = true;
+  try {
+    await fetch('/projects/{{ p.id }}/chat/send', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`body=${encodeURIComponent(body)}` });
+    await fetchNew();
+  } finally { inp.disabled = false; inp.focus(); }
+});
+</script>
+{% endblock %}

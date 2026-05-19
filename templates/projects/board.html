@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% set project = p %}
+{% set ep = request.endpoint or '' %}
+{% block title %}Board — {{ p.name }}{% endblock %}
+{% block page_title %}Task Board{% endblock %}
+
+{% block topbar_actions %}
+{% if current_user.is_manager() %}
+<a href="{{ url_for('tasks.new_task', project_id=p.id) }}" class="btn btn-sm btn-accent">
+  <i class="bi bi-plus-lg me-1"></i>Add Task
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-1 mb-3 align-items-center" style="font-size:.82rem;color:var(--muted)">
+  <a href="{{ url_for('projects.workspace', project_id=p.id) }}" class="text-muted text-decoration-none">{{ p.name }}</a>
+  <i class="bi bi-chevron-right"></i><span>Task Board</span>
+</div>
+
+<!-- Kanban columns -->
+<div class="row g-3 kanban-cols">
+  <!-- To Do -->
+  <div class="col-md-4">
+    <div class="kanban-col h-100">
+      <div class="kanban-col-header" style="border-left:3px solid #94a3b8">
+        <span class="badge-s s-todo me-1">{{ todo|length }}</span> To Do
+      </div>
+      <div class="kanban-col-body" id="col-todo">
+        {% for t in todo %}
+        <a href="{{ url_for('tasks.task_detail', project_id=p.id, task_id=t.id) }}" class="task-card">
+          <div class="d-flex align-items-center gap-1 mb-1">
+            <div class="priority-dot p-{{ t.priority }}"></div>
+            <span class="badge-p p-badge-{{ t.priority }}" style="font-size:.65rem">{{ t.priority }}</span>
+            {% if t.is_overdue %}<span class="overdue-badge ms-auto">Overdue</span>{% endif %}
+          </div>
+          <div class="task-card-title">{{ t.title }}</div>
+          <div class="task-card-meta">
+            <div class="d-flex align-items-center gap-1">
+              <div class="avatar av-sm">{{ t.assignee.avatar_initials }}</div>
+              <span>{{ t.assignee.full_name.split()[0] }}</span>
+            </div>
+            <span>{% if t.deadline %}<i class="bi bi-calendar3 me-1"></i>{{ t.deadline }}{% endif %}</span>
+          </div>
+        </a>
+        {% endfor %}
+        {% if not todo %}<div class="text-center text-muted py-4" style="font-size:.8rem">No tasks</div>{% endif %}
+      </div>
+      {% if current_user.is_manager() %}
+      <div class="p-2 border-top">
+        <a href="{{ url_for('tasks.new_task', project_id=p.id) }}" class="btn btn-sm btn-light w-100" style="font-size:.8rem">
+          <i class="bi bi-plus me-1"></i>Add Task
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- In Progress -->
+  <div class="col-md-4">
+    <div class="kanban-col h-100">
+      <div class="kanban-col-header" style="border-left:3px solid #3b82f6">
+        <span class="badge-s s-in_progress me-1">{{ in_prog|length }}</span> In Progress
+      </div>
+      <div class="kanban-col-body" id="col-inprog">
+        {% for t in in_prog %}
+        <a href="{{ url_for('tasks.task_detail', project_id=p.id, task_id=t.id) }}" class="task-card">
+          <div class="d-flex align-items-center gap-1 mb-1">
+            <div class="priority-dot p-{{ t.priority }}"></div>
+            <span class="badge-p p-badge-{{ t.priority }}" style="font-size:.65rem">{{ t.priority }}</span>
+            {% if t.is_overdue %}<span class="overdue-badge ms-auto">Overdue</span>{% endif %}
+          </div>
+          <div class="task-card-title">{{ t.title }}</div>
+          <div class="task-card-meta">
+            <div class="d-flex align-items-center gap-1">
+              <div class="avatar av-sm">{{ t.assignee.avatar_initials }}</div>
+              <span>{{ t.assignee.full_name.split()[0] }}</span>
+            </div>
+            <span>{% if t.deadline %}<i class="bi bi-calendar3 me-1"></i>{{ t.deadline }}{% endif %}</span>
+          </div>
+        </a>
+        {% endfor %}
+        {% if not in_prog %}<div class="text-center text-muted py-4" style="font-size:.8rem">No tasks</div>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Done -->
+  <div class="col-md-4">
+    <div class="kanban-col h-100">
+      <div class="kanban-col-header" style="border-left:3px solid #22c55e">
+        <span class="badge-s s-done me-1">{{ done|length }}</span> Done
+      </div>
+      <div class="kanban-col-body" id="col-done">
+        {% for t in done %}
+        <a href="{{ url_for('tasks.task_detail', project_id=p.id, task_id=t.id) }}" class="task-card" style="opacity:.8">
+          <div class="d-flex align-items-center gap-1 mb-1">
+            <div class="priority-dot p-{{ t.priority }}"></div>
+            <span class="badge-p p-badge-{{ t.priority }}" style="font-size:.65rem">{{ t.priority }}</span>
+            <i class="bi bi-check-circle-fill text-success ms-auto" style="font-size:.8rem"></i>
+          </div>
+          <div class="task-card-title" style="text-decoration:line-through;opacity:.7">{{ t.title }}</div>
+          <div class="task-card-meta">
+            <div class="d-flex align-items-center gap-1">
+              <div class="avatar av-sm">{{ t.assignee.avatar_initials }}</div>
+              <span>{{ t.assignee.full_name.split()[0] }}</span>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+        {% if not done %}<div class="text-center text-muted py-4" style="font-size:.8rem">No tasks</div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

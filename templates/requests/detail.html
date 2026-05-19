@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% set ep = request.endpoint or '' %}
+{% block title %}Review Request — ProjectHub{% endblock %}
+{% block page_title %}Review Project Request{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('projects.list_projects') }}" class="text-muted text-decoration-none" style="font-size:.875rem">
+    <i class="bi bi-arrow-left me-1"></i>Back
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <!-- Request details -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <span><i class="bi bi-folder me-2 text-muted"></i>Project Request</span>
+        <span class="req-{{ req.status }}">{{ req.status }}</span>
+      </div>
+      <div class="card-body">
+        <h5 class="fw-bold mb-2">{{ req.title }}</h5>
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <span class="badge-p p-badge-{{ req.priority }}">{{ req.priority }}</span>
+          {% if req.deadline %}<span class="text-muted" style="font-size:.82rem"><i class="bi bi-calendar3 me-1"></i>{{ req.deadline }}</span>{% endif %}
+          {% if req.estimated_hours %}<span class="text-muted" style="font-size:.82rem"><i class="bi bi-clock me-1"></i>{{ req.estimated_hours }}h</span>{% endif %}
+        </div>
+        <p style="font-size:.9rem;line-height:1.7">{{ req.description or '<em class="text-muted">No description.</em>'|safe }}</p>
+        <div class="divider"></div>
+        <div class="text-muted" style="font-size:.8rem">
+          Submitted by <strong>{{ req.requester.full_name }}</strong> on {{ req.created_at.strftime('%b %d, %Y') }}
+        </div>
+      </div>
+    </div>
+
+    {% if current_user.is_manager() and req.status == 'pending' %}
+    <!-- Approve form -->
+    <div class="card mb-4" style="border-color:#bbf7d0">
+      <div class="card-header" style="background:#f0fdf4;border-color:#bbf7d0">
+        <span style="color:#15803d"><i class="bi bi-check-circle me-2"></i>Approve Request</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3" style="font-size:.875rem">Approving will create an active project and assign the selected members.</p>
+        <form method="POST" action="{{ url_for('requests.approve', req_id=req.id) }}">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Assign Team Members <span class="text-danger">*</span></label>
+            <div class="border rounded-3 p-3" style="max-height:200px;overflow-y:auto">
+              {% for u in employees %}
+              <div class="form-check mb-1">
+                <input class="form-check-input" type="checkbox" name="members" value="{{ u.id }}" id="m{{ u.id }}"
+                       {% if u.id == req.requested_by %}checked{% endif %}>
+                <label class="form-check-label" for="m{{ u.id }}" style="font-size:.875rem">
+                  {{ u.full_name }} <span class="badge-r r-{{ u.role }} ms-1">{{ u.role }}</span>
+                  {% if u.id == req.requested_by %}<span class="text-muted">(requester)</span>{% endif %}
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <button type="submit" class="btn fw-semibold px-4" style="background:#16a34a;color:#fff">
+            <i class="bi bi-check-lg me-1"></i>Approve & Create Project
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Reject form -->
+    <div class="card" style="border-color:#fecaca">
+      <div class="card-header" style="background:#fff5f5;border-color:#fecaca">
+        <span style="color:#b91c1c"><i class="bi bi-x-circle me-2"></i>Reject Request</span>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('requests.reject', req_id=req.id) }}"
+              onsubmit="return confirm('Reject this request?')">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Rejection Reason <span class="text-muted fw-normal">(optional)</span></label>
+            <textarea name="reason" class="form-control" rows="2" placeholder="Briefly explain why…"></textarea>
+          </div>
+          <button type="submit" class="btn btn-danger fw-semibold px-4">
+            <i class="bi bi-x-lg me-1"></i>Reject Request
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if req.status != 'pending' %}
+    <div class="card p-3" style="{% if req.status == 'approved' %}border-color:#bbf7d0;background:#f0fdf4{% else %}border-color:#fecaca;background:#fff5f5{% endif %}">
+      <div class="d-flex gap-2 align-items-center">
+        <i class="bi bi-{% if req.status == 'approved' %}check-circle-fill text-success{% else %}x-circle-fill text-danger{% endif %}"></i>
+        <div>
+          <div class="fw-semibold">Request {{ req.status|title }}</div>
+          {% if req.rejection_reason %}<div class="text-muted" style="font-size:.82rem">{{ req.rejection_reason }}</div>{% endif %}
+          {% if req.status == 'approved' and req.project_id %}
+          <div class="mt-1"><a href="{{ url_for('projects.workspace', project_id=req.project_id) }}" class="btn btn-sm btn-accent">Open Project →</a></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><span><i class="bi bi-info-circle me-2 text-muted"></i>Request Info</span></div>
+      <div class="card-body" style="font-size:.875rem">
+        <dl class="row g-2 mb-0">
+          <dt class="col-5 text-muted fw-normal">Submitted By</dt>
+          <dd class="col-7 fw-semibold mb-0">{{ req.requester.full_name }}</dd>
+          <dt class="col-5 text-muted fw-normal">Status</dt>
+          <dd class="col-7 mb-0"><span class="req-{{ req.status }}">{{ req.status }}</span></dd>
+          <dt class="col-5 text-muted fw-normal">Priority</dt>
+          <dd class="col-7 mb-0"><span class="badge-p p-badge-{{ req.priority }}">{{ req.priority }}</span></dd>
+          {% if req.deadline %}<dt class="col-5 text-muted fw-normal">Deadline</dt><dd class="col-7 fw-semibold mb-0">{{ req.deadline }}</dd>{% endif %}
+          {% if req.estimated_hours %}<dt class="col-5 text-muted fw-normal">Est. Hours</dt><dd class="col-7 mb-0">{{ req.estimated_hours }}h</dd>{% endif %}
+          <dt class="col-5 text-muted fw-normal">Submitted</dt>
+          <dd class="col-7 text-muted mb-0">{{ req.created_at.strftime('%b %d, %Y') }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

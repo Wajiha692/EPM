@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% set project = p %}
+{% set ep = request.endpoint or '' %}
+{% block title %}Reports — {{ p.name }}{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-sm btn-light"><i class="bi bi-printer me-1"></i>Print</button>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-1 mb-3 align-items-center" style="font-size:.82rem;color:var(--muted)">
+  <a href="{{ url_for('projects.workspace', project_id=p.id) }}" class="text-muted text-decoration-none">{{ p.name }}</a>
+  <i class="bi bi-chevron-right"></i><span>Reports</span>
+</div>
+
+<!-- Summary stats -->
+<div class="row g-3 mb-4">
+  {% set total = tasks|length %}
+  <div class="col-6 col-md-3">
+    <div class="card stat-card">
+      <div class="stat-icon" style="background:#dbeafe"><i class="bi bi-list-check" style="color:#2563eb"></i></div>
+      <div><div class="stat-val" style="color:#2563eb">{{ total }}</div><div class="stat-lbl">Total Tasks</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card">
+      <div class="stat-icon" style="background:#dcfce7"><i class="bi bi-check-circle" style="color:#16a34a"></i></div>
+      <div><div class="stat-val" style="color:#16a34a">{{ status_counts.done }}</div><div class="stat-lbl">Done</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card">
+      <div class="stat-icon" style="background:#ede9fe"><i class="bi bi-percent" style="color:#7c3aed"></i></div>
+      <div><div class="stat-val" style="color:#7c3aed">{{ p.progress }}%</div><div class="stat-lbl">Progress</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card">
+      <div class="stat-icon" style="background:#fee2e2"><i class="bi bi-exclamation-triangle" style="color:#dc2626"></i></div>
+      <div><div class="stat-val" style="color:#dc2626">{{ overdue_tasks|length }}</div><div class="stat-lbl">Overdue</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Status pie -->
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header"><span><i class="bi bi-pie-chart me-2 text-muted"></i>Tasks by Status</span></div>
+      <div class="card-body d-flex align-items-center justify-content-center" style="min-height:220px">
+        <canvas id="statusChart" style="max-height:200px"></canvas>
+      </div>
+    </div>
+  </div>
+  <!-- Priority pie -->
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header"><span><i class="bi bi-flag me-2 text-muted"></i>Tasks by Priority</span></div>
+      <div class="card-body d-flex align-items-center justify-content-center" style="min-height:220px">
+        <canvas id="priorityChart" style="max-height:200px"></canvas>
+      </div>
+    </div>
+  </div>
+  <!-- Per member bar -->
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header"><span><i class="bi bi-people me-2 text-muted"></i>Tasks per Member</span></div>
+      <div class="card-body d-flex align-items-center justify-content-center" style="min-height:220px">
+        <canvas id="memberChart" style="max-height:200px"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tasks per member table -->
+<div class="card table-card mb-4">
+  <div class="card-header"><span><i class="bi bi-people me-2 text-muted"></i>Workload Breakdown</span></div>
+  <table class="table">
+    <thead><tr><th>Member</th><th>To Do</th><th>In Progress</th><th>Done</th><th>Total</th></tr></thead>
+    <tbody>
+    {% for m in per_member %}
+    <tr>
+      <td class="fw-semibold">{{ m.name }}</td>
+      <td><span class="badge-s s-todo">{{ m.todo }}</span></td>
+      <td><span class="badge-s s-in_progress">{{ m.in_progress }}</span></td>
+      <td><span class="badge-s s-done">{{ m.done }}</span></td>
+      <td class="fw-semibold">{{ m.todo + m.in_progress + m.done }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Overdue tasks -->
+{% if overdue_tasks %}
+<div class="card table-card">
+  <div class="card-header" style="background:#fff5f5;border-color:#fecaca">
+    <span style="color:#b91c1c"><i class="bi bi-exclamation-triangle-fill me-2"></i>Overdue Tasks ({{ overdue_tasks|length }})</span>
+  </div>
+  <table class="table">
+    <thead><tr><th>Task</th><th>Assignee</th><th>Priority</th><th>Deadline</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for t in overdue_tasks %}
+    <tr class="overdue-bg">
+      <td class="fw-semibold">{{ t.title }}</td>
+      <td>{{ t.assignee.full_name }}</td>
+      <td><span class="badge-p p-badge-{{ t.priority }}">{{ t.priority }}</span></td>
+      <td style="color:#b91c1c;font-weight:600;font-size:.85rem">{{ t.deadline }}</td>
+      <td><span class="badge-s s-{{ t.status }}">{{ t.status.replace('_',' ') }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const sd = {{ chart_status | safe }};
+const pd = {{ chart_priority | safe }};
+const md = {{ chart_members | safe }};
+
+new Chart(document.getElementById('statusChart'), {
+  type:'doughnut',
+  data:{ labels:['To Do','In Progress','Done'], datasets:[{ data:[sd.todo,sd.in_progress,sd.done], backgroundColor:['#94a3b8','#3b82f6','#22c55e'], borderWidth:0, hoverOffset:5 }] },
+  options:{ plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11} } } }, cutout:'62%' }
+});
+
+new Chart(document.getElementById('priorityChart'), {
+  type:'doughnut',
+  data:{ labels:['High','Medium','Low'], datasets:[{ data:[pd.high,pd.medium,pd.low], backgroundColor:['#ef4444','#f59e0b','#22c55e'], borderWidth:0, hoverOffset:5 }] },
+  options:{ plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11} } } }, cutout:'62%' }
+});
+
+new Chart(document.getElementById('memberChart'), {
+  type:'bar',
+  data:{
+    labels: md.map(m=>m.name.split(' ')[0]),
+    datasets:[
+      { label:'To Do',       data:md.map(m=>m.todo),        backgroundColor:'#94a3b8', borderRadius:4, borderWidth:0 },
+      { label:'In Progress', data:md.map(m=>m.in_progress), backgroundColor:'#3b82f6', borderRadius:4, borderWidth:0 },
+      { label:'Done',        data:md.map(m=>m.done),        backgroundColor:'#22c55e', borderRadius:4, borderWidth:0 },
+    ]
+  },
+  options:{
+    plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:10} } } },
+    scales:{ x:{ stacked:true, grid:{display:false} }, y:{ stacked:true, beginAtZero:true, ticks:{stepSize:1}, grid:{color:'#f1f5f9'} } },
+    responsive:true, maintainAspectRatio:false
+  }
+});
+</script>
+{% endblock %}
